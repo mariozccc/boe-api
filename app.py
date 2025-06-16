@@ -5,11 +5,10 @@ import os
 
 app = Flask(__name__)
 
-# Diccionario con identificadores del BOE
 normas = {
-    "lsc": "BOE-A-2010-10544",   # Ley de Sociedades de Capital
-    "cc": "BOE-A-1889-4763",     # Código Civil
-    "ccom": "BOE-A-1885-6627"    # Código de Comercio
+    "lsc": "BOE-A-2010-10544",
+    "cc": "BOE-A-1889-4763",
+    "ccom": "BOE-A-1885-6627"
 }
 
 @app.route('/boe/articulo', methods=['GET'])
@@ -24,27 +23,29 @@ def get_articulo():
     url = f"https://www.boe.es/buscar/act.php?id={boe_id}&articulo={articulo}&tipo=doc"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-    
-    dispo = soup.find('div', class_='disposicion')
 
-    if dispo:
-        texto = dispo.get_text(separator="\n").strip()
-        if articulo.lower() in texto.lower():
-            return jsonify({
-                "norma": norma,
-                "articulo": articulo,
-                "contenido": texto
-            })
-        else:
-            return jsonify({"error": "Artículo no encontrado en disposición"}), 404
+    # Buscar todos los párrafos que parezcan contener artículos
+    posibles = soup.find_all(['p', 'div'])
+
+    encontrados = []
+    for p in posibles:
+        texto = p.get_text(strip=True)
+        if texto.lower().startswith(f"artículo {articulo.lower()}"):
+            encontrados.append(texto)
+
+    if encontrados:
+        return jsonify({
+            "norma": norma,
+            "articulo": articulo,
+            "contenido": "\n\n".join(encontrados)
+        })
     else:
-        return jsonify({"error": "Contenido no disponible"}), 404
+        return jsonify({"error": "Artículo no encontrado"}), 404
 
 @app.route('/')
 def index():
     return "API del BOE funcionando"
 
-# Configuración para entorno Render
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
