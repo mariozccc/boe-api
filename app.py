@@ -1,13 +1,15 @@
 from flask import Flask, request, jsonify
 import requests
 from bs4 import BeautifulSoup
+import os  # Necesario para obtener el puerto desde Render
 
 app = Flask(__name__)
 
+# Mapeo de normas a sus identificadores BOE
 normas = {
-    "lsc": "BOE-A-2010-10544",
-    "cc": "BOE-A-1889-4763",
-    "ccom": "BOE-A-1885-6627"
+    "lsc": "BOE-A-2010-10544",   # Ley de Sociedades de Capital
+    "cc": "BOE-A-1889-4763",     # Código Civil
+    "ccom": "BOE-A-1885-6627"    # Código de Comercio
 }
 
 @app.route('/boe/articulo', methods=['GET'])
@@ -37,5 +39,7 @@ def get_articulo():
 def index():
     return "API del BOE funcionando"
 
+# Configuración para funcionar correctamente en Render
 if __name__ == '__main__':
-    app.run()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
